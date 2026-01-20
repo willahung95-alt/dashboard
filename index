@@ -1,69 +1,386 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
+<!doctype html>
+<html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>系統連線監控中心</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .dot { height: 12px; width: 12px; border-radius: 50%; display: inline-block; margin-right: 8px; }
-        .bg-online { background-color: #10b981; box-shadow: 0 0 8px #10b981; }
-        .bg-offline { background-color: #ef4444; box-shadow: 0 0 8px #ef4444; }
-    </style>
-</head>
-<body class="bg-gray-900 text-gray-100 p-8">
-    <div class="max-w-5xl mx-auto">
-        <header class="flex justify-between items-center mb-10 border-b border-gray-700 pb-5">
-            <h1 class="text-3xl font-bold tracking-tight">監控中心 <span class="text-blue-400 text-sm font-normal ml-2">Real-time Status</span></h1>
-            <div id="lastUpdate" class="text-gray-400 text-sm">更新中...</div>
-        </header>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow">
+  <title>網站服務監控中心</title>
+  <style>
+    /* --- 基礎設定 (維持不變) --- */
+    :root {
+      --bg-body: #f3f4f6;
+      --bg-card: #ffffff;
+      --text-main: #111827;
+      --text-sub: #6b7280;
+      --border: #e5e7eb;
+      --primary: #2563eb;
+      --success-bg: #d1fae5;
+      --success-text: #065f46;
+      --danger-bg: #fee2e2;
+      --danger-text: #991b1b;
+      --unknown-bg: #f3f4f6;
+      --unknown-text: #374151;
+    }
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="statusGrid">
-            </div>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      margin: 0;
+      padding: 0;
+      /* 點擊外部關閉 popover 需要 */
+      min-height: 100vh;
+    }
+
+    /* --- 版面配置 (維持不變) --- */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    header {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;
+    }
+    h1 {
+      margin: 0; font-size: 24px; font-weight: 700; color: #1f2937; display: flex; align-items: center; gap: 10px;
+    }
+    h1::before {
+      content: ''; display: block; width: 6px; height: 24px; background: var(--primary); border-radius: 4px;
+    }
+    .last-update {
+      font-size: 13px; color: var(--text-sub); background: #fff; padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border); display: flex; align-items: center; gap: 6px;
+    }
+
+    /* --- 狀態概覽卡片 (維持不變) --- */
+    .dashboard-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;
+    }
+    .card {
+      background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid var(--border); display: flex; flex-direction: column;
+    }
+    .card-label { font-size: 14px; color: var(--text-sub); margin-bottom: 8px; }
+    .card-value { font-size: 32px; font-weight: 700; color: var(--text-main); }
+    .card.up-card { border-left: 4px solid #10b981; }
+    .card.down-card { border-left: 4px solid #ef4444; }
+    .card.total-card { border-left: 4px solid #6366f1; }
+
+    /* --- 工具列 (維持不變) --- */
+    .toolbar { display: flex; gap: 12px; margin-bottom: 16px; }
+    .search-input {
+      flex: 1; padding: 10px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; transition: all 0.2s;
+    }
+    .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+    .btn-refresh {
+      padding: 10px 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-weight: 600; color: var(--text-sub); transition: all 0.2s;
+    }
+    .btn-refresh:hover { background: #f9fafb; color: var(--primary); border-color: var(--primary); }
+
+    /* --- 表格樣式 (微調) --- */
+    .table-container {
+      background: var(--bg-card); border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid var(--border); overflow-x: auto;
+      padding-bottom: 50px; /* 預留空間給 popover，避免被截斷 */
+    }
+    table { width: 100%; border-collapse: collapse; min-width: 800px; }
+    thead { background: #f9fafb; border-bottom: 1px solid var(--border); }
+    th {
+      text-align: left; padding: 14px 16px; font-size: 12px; font-weight: 600; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    td {
+      padding: 16px; border-bottom: 1px solid #f3f4f6; font-size: 14px; vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover { background-color: #f9fafb; }
+
+    /* --- 狀態標籤 Pill (維持不變) --- */
+    .badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; }
+    .badge.up { background: var(--success-bg); color: var(--success-text); }
+    .badge.down { background: var(--danger-bg); color: var(--danger-text); }
+    .badge.unknown { background: var(--unknown-bg); color: var(--unknown-text); }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; background-color: currentColor; }
+
+    /* --- 連結與其他文字 (維持不變) --- */
+    a.link { color: var(--primary); text-decoration: none; font-weight: 500; }
+    a.link:hover { text-decoration: underline; }
+    .text-sm { font-size: 12px; color: var(--text-sub); }
+    .text-code { font-family: monospace; font-size: 13px; background: #f3f4f6; padding: 2px 6px; border-radius: 4px; }
+
+    /* ====== 新增：互動式錯誤訊息樣式 ====== */
+    /* 讓 TD 成為定位點 */
+    td.col-reason { position: relative; text-align: center; }
+    
+    /* 使用 HTML5 details/summary 實作 popover */
+    .error-details { display: inline-block; }
+    /* 隱藏預設三角形 marker */
+    .error-details summary::-webkit-details-marker { display: none; }
+    .error-details summary { list-style: none; }
+    
+    /* Icon 按鈕樣式 */
+    .btn-info-toggle {
+        cursor: pointer;
+        font-size: 18px;
+        color: var(--danger-text);
+        background: var(--danger-bg);
+        width: 32px; height: 32px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 50%;
+        transition: all 0.2s;
+    }
+    .btn-info-toggle:hover { background: #fee2e2; transform: scale(1.1); }
+    
+    /* 彈出視窗樣式 (Popover) */
+    .error-popover {
+        position: absolute;
+        right: 10px; /* 靠右對齊 */
+        top: 50px;   /* Icon 下方 */
+        z-index: 999; /* 確保在最上層 */
+        width: 280px; /* 固定寬度，避免太寬 */
+        background: #fff;
+        box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 16px;
+        text-align: left;
+        animation: popIn 0.2s ease-out;
+    }
+
+    /* 彈出動畫 */
+    @keyframes popIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .popover-title { font-weight: 700; font-size: 14px; margin-bottom: 8px; color: var(--danger-text); display: flex; align-items: center; gap:6px; }
+    .err-msg-full { 
+      color: var(--text-main); font-size: 13px; line-height: 1.5; 
+      word-break: break-word; /* 強制長單字換行 */
+      white-space: pre-wrap;  /* 保留換行格式 */
+    }
+
+    /* --- Loading 動畫 (維持不變) --- */
+    .loading-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.8); display: flex; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(2px); transition: opacity 0.3s;
+    }
+    .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+    .spinner {
+      width: 40px; height: 40px; border: 4px solid #e5e7eb; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+  </style>
+</head>
+<body>
+
+  <div id="loader" class="loading-overlay">
+    <div class="spinner"></div>
+  </div>
+
+  <div class="container">
+    <header>
+      <h1>網站服務監控中心</h1>
+      <div class="last-update" id="lastUpdateDisplay">
+        <span style="display:inline-block; width:8px; height:8px; background:#10b981; border-radius:50%; box-shadow:0 0 4px #10b981;"></span>
+        等待同步中...
+      </div>
+    </header>
+
+    <div class="dashboard-grid">
+      <div class="card total-card">
+        <div class="card-label">監控總數</div>
+        <div class="card-value" id="val-total">-</div>
+      </div>
+      <div class="card up-card">
+        <div class="card-label">服務正常 (UP)</div>
+        <div class="card-value" style="color: #059669;" id="val-up">-</div>
+      </div>
+      <div class="card down-card">
+        <div class="card-label">服務異常 (DOWN)</div>
+        <div class="card-value" style="color: #dc2626;" id="val-down">-</div>
+      </div>
     </div>
 
-    <script>
-        // 請替換成您剛才部署的 GAS 網頁應用程式 URL
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbxZsTFYOsMhRuStkKOM_IOui4suN2jXsQYWIObka0mnRVynuscYHj1Z-0bv9_vJTntm/exec";
+    <div class="toolbar">
+      <input id="q" class="search-input" placeholder="🔍 搜尋客戶名稱或網址..." />
+      <button id="refresh" class="btn-refresh">⟳ 重新整理</button>
+    </div>
 
-        async function fetchStatus() {
-            try {
-                const response = await fetch(GAS_URL);
-                const data = await response.json();
-                renderCards(data);
-                document.getElementById('lastUpdate').innerText = "最後同步: " + new Date().toLocaleTimeString();
-            } catch (e) {
-                console.error("無法取得資料", e);
-            }
-        }
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:140px;">系統狀態</th>
+            <th style="width:280px;">客戶名稱</th>
+            <th>網址連結</th>
+            <th style="width:100px;">HTTP</th>
+            <th style="width:100px;">延遲</th>
+            <th style="width:180px;">最後檢查</th>
+            <th style="width:90px; text-align:center;">狀態說明</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
 
-        function renderCards(data) {
-            const container = document.getElementById('statusGrid');
-            container.innerHTML = '';
-            data.forEach(item => {
-                const isOnline = item.Status === "正常";
-                const card = `
-                    <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 hover:border-blue-500 transition-all">
-                        <div class="flex justify-between items-start mb-4">
-                            <h3 class="text-xl font-semibold">${item['Client Name']}</h3>
-                            <span class="dot ${isOnline ? 'bg-online' : 'bg-offline'}"></span>
-                        </div>
-                        <p class="text-gray-400 text-sm truncate mb-4">${item.URL}</p>
-                        <div class="flex justify-between items-center text-xs">
-                            <span class="${isOnline ? 'text-emerald-400' : 'text-red-400'} font-bold">
-                                ${item.Status || '檢查中'}
-                            </span>
-                            <span class="text-gray-500">${item['Last Check'] || '-'}</span>
-                        </div>
+  <script>
+	// 簡易密碼驗證
+	const ACCESS_PASSWORD = "oitc16088678"; // 請自行設定
+	const userEntry = prompt("此為內部監控系統，請輸入存取口令：");
+
+	if (userEntry !== ACCESS_PASSWORD) {
+		alert("密碼錯誤，拒絕存取。");
+		document.body.innerHTML = "<h1 style='text-align:center; margin-top:100px;'>無權限查看此頁面</h1>";
+		window.stop(); // 停止後續載入
+	}
+    // ======= CONFIG (請填入您的參數) =======
+    // 請將您的 GAS 網址與 TOKEN 填寫於此
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxZsTFYOsMhRuStkKOM_IOui4suN2jXsQYWIObka0mnRVynuscYHj1Z-0bv9_vJTntm/exec"; 
+    const TOKEN = "v1_2c8c6f3a8c1d4f11b7f5a9c0d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0";
+    // -------------------------------------
+
+    const $ = (id) => document.getElementById(id);
+    let allItems = [];
+
+    // 狀態標籤樣式
+    function getBadgeHtml(status){
+      if (status === "UP") 
+        return `<span class="badge up"><span class="badge-dot"></span>正常運作</span>`;
+      if (status === "DOWN") 
+        return `<span class="badge down"><span class="badge-dot"></span>異常中斷</span>`;
+      return `<span class="badge unknown"><span class="badge-dot"></span>檢查中</span>`;
+    }
+
+    function render(items){
+      const q = ($("q").value || "").trim().toLowerCase();
+      const filtered = items.filter(it => {
+        if (!q) return true;
+        return (it.customer || "").toLowerCase().includes(q) || (it.url || "").toLowerCase().includes(q);
+      });
+
+      const tbody = $("tbody");
+      tbody.innerHTML = "";
+
+      if(filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 40px; color:#999;">查無相關資料</td></tr>`;
+      }
+
+      filtered.forEach((it, index) => {
+        const tr = document.createElement("tr");
+
+        // 狀態
+        const statusTd = document.createElement("td");
+        statusTd.innerHTML = getBadgeHtml(it.status);
+        tr.appendChild(statusTd);
+
+        // 客戶
+        const custTd = document.createElement("td");
+        custTd.style.fontWeight = "600";
+        custTd.textContent = it.customer || "(未命名)";
+        tr.appendChild(custTd);
+
+        // 網址
+        const urlTd = document.createElement("td");
+        const a = document.createElement("a");
+        a.href = it.url; a.className = "link"; a.target = "_blank"; a.rel = "noopener noreferrer";
+        a.textContent = it.url;
+        urlTd.appendChild(a);
+        tr.appendChild(urlTd);
+
+        // HTTP Code
+        const codeTd = document.createElement("td");
+        codeTd.innerHTML = it.httpCode ? `<span class="text-code">${it.httpCode}</span>` : "-";
+        tr.appendChild(codeTd);
+
+        // 延遲
+        const latTd = document.createElement("td");
+        latTd.className = "text-sm";
+        latTd.textContent = it.latencyMs ? `${it.latencyMs} ms` : "-";
+        tr.appendChild(latTd);
+
+        // 時間
+        const checkedTd = document.createElement("td");
+        checkedTd.className = "text-sm";
+        checkedTd.innerHTML = `<div>${it.checkedAt || ""}</div>`;
+        tr.appendChild(checkedTd);
+
+        // 修改點 3: 互動式原因欄位
+        const reasonTd = document.createElement("td");
+        reasonTd.className = "col-reason"; // 加入 class 以便 CSS 定位
+
+        if (it.status === "DOWN") {
+             const reasonText = escapeHtml(it.reason || "未知錯誤");
+             // 使用 HTML5 details/summary 實作 Popover 效果，不佔用表格空間
+             reasonTd.innerHTML = `
+                <details class="error-details" id="details-${index}">
+                    <summary class="btn-info-toggle" title="點擊查看詳細原因">ℹ️</summary>
+                    <div class="error-popover">
+                        <div class="popover-title">⚠️ 異常詳細資訊</div>
+                        <div class="err-msg-full">${reasonText}</div>
                     </div>
-                `;
-                container.innerHTML += card;
+                </details>
+             `;
+        } else {
+             reasonTd.innerHTML = `<span class="text-sm" style="color:#9ca3af">OK</span>`;
+        }
+        tr.appendChild(reasonTd);
+
+        tbody.appendChild(tr);
+      });
+
+      updateStats(filtered);
+    }
+
+    // ... (updateStats, escapeHtml, load 等函數保持不變)
+    function updateStats(items) {
+      const up = items.filter(x => x.status === "UP").length;
+      const down = items.filter(x => x.status === "DOWN").length;
+      $("val-total").textContent = items.length;
+      $("val-up").textContent = up;
+      $("val-down").textContent = down;
+    }
+
+    function escapeHtml(s){
+      return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+    }
+
+    async function load(){
+      if(allItems.length === 0) $("loader").classList.remove("hidden");
+      $("lastUpdateDisplay").innerHTML = `⟳ 更新中...`;
+      try {
+        const url = `${GAS_WEB_APP_URL}?token=${encodeURIComponent(TOKEN)}`;
+        const res = await fetch(url, { cache: "no-store" });
+        const data = await res.json();
+        if (!data.ok){ alert(`載入失敗：${data.error || "unknown"}`); return; }
+        allItems = data.items || [];
+        render(allItems);
+        const now = new Date();
+        $("lastUpdateDisplay").innerHTML = `<span style="color:#059669">✔</span> 最後更新：${now.toLocaleTimeString('zh-TW', { hour12: false })}`;
+      } catch(e) {
+        console.error(e); $("lastUpdateDisplay").innerHTML = `<span style="color:#dc2626">✖</span> 連線錯誤`;
+      } finally {
+        $("loader").classList.add("hidden");
+      }
+    }
+
+    $("refresh").addEventListener("click", load);
+    $("q").addEventListener("input", () => render(allItems));
+
+    // 點擊頁面其他地方時，關閉所有已開啟的 error popover
+    document.addEventListener('click', function(e) {
+        // 如果點擊的不是 summary (icon) 本身或其內部
+        if (!e.target.closest('summary')) {
+            const openDetails = document.querySelectorAll('details[open]');
+            openDetails.forEach(detail => {
+                // 如果點擊的也不是 popover 內容本身，就關閉它
+                if (!e.target.closest('.error-popover')) {
+                    detail.removeAttribute('open');
+                }
             });
         }
+    });
 
-        // 每 30 秒更新一次前端畫面
-        fetchStatus();
-        setInterval(fetchStatus, 30000);
-    </script>
+    load();
+    setInterval(load, 60 * 1000);
+  </script>
 </body>
 </html>
