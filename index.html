@@ -272,7 +272,7 @@
       const r = String(reason).toUpperCase();
       
       if (r.includes("TIMEOUT")) {
-        return `<b>⏱️ 連線逾時</b><br><span style="color:#666">伺服器回應超過 8 秒，可能負載過高。</span>`;
+        return `<b>⏱️ 連線逾時</b><br><span style="color:#666">伺服器回應超過 30 秒，可能負載過高。</span>`;
       }
       if (r.includes("FETCH_ERROR")) {
         return `<b>🚫 連線失敗 (Fetch Error)</b><br><span style="color:#666">Google 無法建立連線，可能被防火牆阻擋。</span>`;
