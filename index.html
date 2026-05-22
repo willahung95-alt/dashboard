@@ -5,313 +5,1290 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="robots" content="noindex, nofollow">
   <title>網站服務監控中心</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    /* --- 基礎設定 --- */
     :root {
-      --bg-body: #f3f4f6; --bg-card: #ffffff; --text-main: #111827;
-      --text-sub: #6b7280; --border: #e5e7eb; --primary: #2563eb;
-      --success-bg: #d1fae5; --success-text: #065f46;
-      --danger-bg: #fee2e2; --danger-text: #991b1b;
-      --unknown-bg: #f3f4f6; --unknown-text: #374151;
+      --bg:            #f0f2f5;
+      --bg-card:       #ffffff;
+      --bg-card2:      #f8f9fb;
+      --bg-input:      #ffffff;
+      --border:        #e2e6ea;
+      --border-bright: #c8cdd4;
+      --text:          #1a1f2e;
+      --text-sub:      #6b7280;
+      --text-muted:    #9ca3af;
+      --primary:       #2563eb;
+      --primary-dim:   #dbeafe;
+      --primary-border:#93c5fd;
+      --success:       #16a34a;
+      --success-bg:    #dcfce7;
+      --success-text:  #15803d;
+      --danger:        #dc2626;
+      --danger-bg:     #fee2e2;
+      --danger-text:   #b91c1c;
+      --warning:       #d97706;
+      --warning-bg:    #fef3c7;
+      --warning-text:  #b45309;
+      --purple:        #7c3aed;
+      --purple-bg:     #ede9fe;
+      --purple-text:   #6d28d9;
+      --unknown-bg:    #f3f4f6;
+      --unknown-text:  #6b7280;
+      --shadow-sm:     0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md:     0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+      --radius: 10px;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Noto Sans TC', sans-serif;
     }
-
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      display: none; /* 驗證前隱藏，避免閃爍 */
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: var(--bg-body); color: var(--text-main); margin: 0; padding: 0; min-height: 100vh;
+      display: none;
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
     }
 
-    /* --- 版面配置 --- */
-    .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
-    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
-    h1 { margin: 0; font-size: 24px; font-weight: 700; color: #1f2937; display: flex; align-items: center; gap: 10px; }
-    h1::before { content: ''; display: block; width: 6px; height: 24px; background: var(--primary); border-radius: 4px; }
-    .last-update { font-size: 13px; color: var(--text-sub); background: #fff; padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border); display: flex; align-items: center; gap: 6px; }
+    /* ── Layout ── */
+    .container { max-width: 1380px; margin: 0 auto; padding: 0 20px 32px; }
 
-    /* --- 狀態概覽卡片 --- */
-    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
-    .card { background: var(--bg-card); padding: 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid var(--border); display: flex; flex-direction: column; }
-    .card-label { font-size: 14px; color: var(--text-sub); margin-bottom: 8px; }
-    .card-value { font-size: 32px; font-weight: 700; color: var(--text-main); }
-    .card.up-card { border-left: 4px solid #10b981; }
-    .card.down-card { border-left: 4px solid #ef4444; }
-    .card.total-card { border-left: 4px solid #6366f1; }
+    /* ── Topbar ── */
+    .topbar {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      position: sticky; top: 0; z-index: 100;
+      margin-bottom: 24px;
+    }
+    .topbar-inner {
+      max-width: 1380px; margin: 0 auto; padding: 0 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 56px; gap: 12px;
+    }
+    .header-left  { display: flex; align-items: center; gap: 12px; }
 
-    /* --- 工具列 --- */
-    .toolbar { display: flex; gap: 12px; margin-bottom: 16px; }
-    .search-input { flex: 1; padding: 10px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; transition: all 0.2s; }
-    .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
-    .btn-refresh { padding: 10px 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-weight: 600; color: var(--text-sub); transition: all 0.2s; }
-    .btn-refresh:hover { background: #f9fafb; color: var(--primary); border-color: var(--primary); }
+    /* ── Logo Mark (SVG icon) ── */
+    .logo-mark {
+      width: 34px; height: 34px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 50%, #7dd3fc 100%);
+      box-shadow: 0 2px 8px rgba(14,165,233,0.25);
+      overflow: hidden;
+    }
+    .logo-mark svg {
+      width: 22px; height: 22px;
+    }
 
-    /* --- 表格樣式 --- */
-    .table-container { background: var(--bg-card); border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid var(--border); overflow-x: auto; padding-bottom: 50px; }
-    table { width: 100%; border-collapse: collapse; min-width: 800px; }
-    thead { background: #f9fafb; border-bottom: 1px solid var(--border); }
-    th { text-align: left; padding: 14px 16px; font-size: 12px; font-weight: 600; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.05em; }
-    td { padding: 16px; border-bottom: 1px solid #f3f4f6; font-size: 14px; vertical-align: middle; }
-    tr:hover { background-color: #f9fafb; }
+    h1 { font-size: 17px; font-weight: 700; color: var(--text); letter-spacing: -0.2px; }
+    .version-tag {
+      font-size: 11px; font-family: var(--mono); color: var(--text-muted);
+      background: var(--bg); border: 1px solid var(--border);
+      padding: 2px 7px; border-radius: 99px;
+    }
+    .header-right { display: flex; align-items: center; gap: 8px; }
+    .status-pill {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--success-bg); border: 1px solid #bbf7d0;
+      padding: 5px 12px; border-radius: 99px;
+      font-size: 12px; color: var(--success-text); font-family: var(--mono);
+    }
+    .pulse {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--success); box-shadow: 0 0 6px var(--success);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.35;} }
 
-    /* --- 狀態標籤 --- */
-    .badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; }
-    .badge.up { background: var(--success-bg); color: var(--success-text); }
-    .badge.down { background: var(--danger-bg); color: var(--danger-text); }
-    .badge.unknown { background: var(--unknown-bg); color: var(--unknown-text); }
-    .badge-dot { width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; background-color: currentColor; }
+    .btn-admin {
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: 7px; font-size: 13px; font-weight: 600;
+      cursor: pointer; border: 1px solid var(--border); font-family: var(--sans);
+      background: var(--bg-card); color: var(--text-sub);
+      transition: all 0.15s; box-shadow: var(--shadow-sm);
+    }
+    .btn-admin:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-dim); }
 
-    a.link { color: var(--primary); text-decoration: none; font-weight: 500; }
-    .text-sm { font-size: 12px; color: var(--text-sub); }
-    .text-code { font-family: monospace; font-size: 13px; background: #f3f4f6; padding: 2px 6px; border-radius: 4px; }
+    /* ── Summary Cards ── */
+    .cards-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px; margin-bottom: 20px;
+    }
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px 22px;
+      box-shadow: var(--shadow-sm); display: flex; align-items: center; gap: 16px;
+    }
+    .card-icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+    .card-body { flex: 1; }
+    .card-label { font-size: 12px; font-weight: 500; color: var(--text-sub); margin-bottom: 4px; }
+    .card-val   { font-size: 30px; font-weight: 700; font-family: var(--mono); line-height: 1; }
+    .card.c-total .card-icon { background: #dbeafe; }
+    .card.c-total .card-val  { color: var(--primary); }
+    .card.c-up    .card-icon { background: var(--success-bg); }
+    .card.c-up    .card-val  { color: var(--success); }
+    .card.c-down  .card-icon { background: var(--danger-bg); }
+    .card.c-down  .card-val  { color: var(--danger); }
+    .card.c-warn  .card-icon { background: var(--warning-bg); }
+    .card.c-warn  .card-val  { color: var(--warning); }
 
-    /* --- Popover 錯誤詳細資訊 --- */
+    /* ── Toolbar ── */
+    .toolbar { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+    .search-wrap { flex: 1; min-width: 220px; position: relative; }
+    .search-icon {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      color: var(--text-muted); font-size: 15px; pointer-events: none;
+    }
+    .search-input {
+      width: 100%; padding: 9px 12px 9px 36px;
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+      font-size: 14px; color: var(--text); outline: none; font-family: var(--sans);
+      transition: border-color 0.15s, box-shadow 0.15s; box-shadow: var(--shadow-sm);
+    }
+    .search-input::placeholder { color: var(--text-muted); }
+    .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px #dbeafe; }
+
+    .filter-btns { display: flex; gap: 6px; }
+    .fbtn {
+      padding: 8px 14px; border-radius: 7px; font-size: 13px; font-weight: 600;
+      cursor: pointer; border: 1px solid var(--border); font-family: var(--sans);
+      background: var(--bg-card); color: var(--text-sub);
+      transition: all 0.15s; white-space: nowrap; box-shadow: var(--shadow-sm);
+    }
+    .fbtn:hover { border-color: var(--border-bright); color: var(--text); }
+    .fbtn.active        { background: var(--primary-dim); border-color: var(--primary-border); color: var(--primary); }
+    .fbtn.active-danger { background: var(--danger-bg); border-color: #fca5a5; color: var(--danger); }
+    .fbtn.active-warn   { background: var(--warning-bg); border-color: #fcd34d; color: var(--warning); }
+
+    .btn-refresh {
+      padding: 8px 16px; border-radius: 7px; font-size: 13px; font-weight: 600;
+      cursor: pointer; border: 1px solid var(--border); font-family: var(--sans);
+      background: var(--bg-card); color: var(--text-sub);
+      transition: all 0.15s; white-space: nowrap; box-shadow: var(--shadow-sm);
+    }
+    .btn-refresh:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-dim); }
+
+    /* ── Table ── */
+    .table-wrap {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow-x: auto; box-shadow: var(--shadow-sm);
+    }
+    table { width: 100%; border-collapse: collapse; min-width: 900px; }
+    thead { background: var(--bg-card2); border-bottom: 1px solid var(--border); }
+    th {
+      text-align: left; padding: 11px 16px;
+      font-size: 11px; font-weight: 700; color: var(--text-sub);
+      text-transform: uppercase; letter-spacing: 0.07em; white-space: nowrap;
+    }
+    td {
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      font-size: 13px; vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tbody tr { transition: background 0.1s; }
+    tbody tr:hover { background: #f8faff; }
+
+    .cell-customer { font-weight: 600; color: var(--text); }
+    .cell-product  {
+      font-size: 11px; font-weight: 600;
+      display: inline-block; margin-top: 3px;
+      background: var(--purple-bg); color: var(--purple-text);
+      border: 1px solid #c4b5fd; border-radius: 4px;
+      padding: 1px 6px;
+    }
+    .customer-link {
+      display: inline-flex; align-items: center; gap: 5px;
+      color: var(--text); text-decoration: none; font-weight: 600;
+      transition: color 0.15s;
+    }
+    .customer-link:hover { color: var(--primary); }
+    .customer-link .link-icon {
+      font-size: 11px; opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .customer-link:hover .link-icon { opacity: 1; }
+
+    .badge-internal {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+      background: #f3f4f6; color: var(--text-muted);
+      border: 1px solid var(--border); border-radius: 4px;
+      padding: 1px 6px; margin-top: 3px;
+    }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border-radius: 99px; font-size: 11px; font-weight: 700;
+      letter-spacing: 0.03em; font-family: var(--mono);
+    }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .badge.up      { background: var(--success-bg); color: var(--success-text); border: 1px solid #bbf7d0; }
+    .badge.down    { background: var(--danger-bg);  color: var(--danger-text);  border: 1px solid #fca5a5; }
+    .badge.unknown { background: var(--unknown-bg); color: var(--unknown-text); border: 1px solid var(--border); }
+    .badge.cert-only { background: var(--purple-bg); color: var(--purple-text); border: 1px solid #c4b5fd; }
+
+    .cert-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 8px; border-radius: 5px; font-size: 11px; font-weight: 600;
+      font-family: var(--mono);
+    }
+    .cert-ok      { background: var(--success-bg); color: var(--success-text); }
+    .cert-warn    { background: var(--warning-bg); color: var(--warning-text); }
+    .cert-expired { background: var(--danger-bg);  color: var(--danger-text); }
+    .cert-none    { color: var(--text-muted); font-size: 12px; }
+
+    .cert-expiry-row { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+    .cert-expiry-warn    { color: var(--warning); }
+    .cert-expiry-expired { color: var(--danger); }
+
+    .notify-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+    .chip {
+      font-size: 10px; font-weight: 600;
+      background: #e0f2fe; color: #0369a1;
+      border: 1px solid #7dd3fc; border-radius: 99px;
+      padding: 1px 7px;
+    }
+
+    a.link { color: var(--primary); text-decoration: none; }
+    a.link:hover { text-decoration: underline; }
+    .mono { font-family: var(--mono); font-size: 12px; }
+    .text-sub { color: var(--text-sub); font-size: 12px; }
+    .code-pill {
+      font-family: var(--mono); font-size: 11px;
+      background: var(--bg); padding: 2px 7px;
+      border-radius: 5px; border: 1px solid var(--border); color: var(--text-sub);
+    }
+
+    /* ── Reason popover ── */
     td.col-reason { position: relative; text-align: center; }
-    .error-details { display: inline-block; }
-    .error-details summary { list-style: none; cursor: pointer; }
-    .btn-info-toggle { font-size: 18px; color: var(--danger-text); background: var(--danger-bg); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: all 0.2s; }
-    .error-popover { position: absolute; right: 10px; top: 50px; z-index: 999; width: 280px; background: #fff; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; text-align: left; animation: popIn 0.2s ease-out; }
-    @keyframes popIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-    .popover-title { font-weight: 700; font-size: 14px; margin-bottom: 8px; color: var(--danger-text); }
-    .err-msg-full { font-size: 13px; line-height: 1.6; color: #374151; word-break: break-word; }
+    .err-details summary { list-style: none; cursor: pointer; }
+    .btn-info {
+      font-size: 15px; background: var(--danger-bg); color: var(--danger);
+      width: 28px; height: 28px; display: flex; align-items: center;
+      justify-content: center; border-radius: 50%; border: 1px solid #fca5a5;
+    }
+    .err-popover {
+      position: absolute; right: 8px; top: 44px; z-index: 999;
+      width: 280px; background: var(--bg-card); box-shadow: var(--shadow-md);
+      border: 1px solid var(--border); border-radius: 10px; padding: 14px;
+      text-align: left; animation: popIn 0.15s ease-out;
+    }
+    @keyframes popIn { from{opacity:0;transform:translateY(-6px);} to{opacity:1;transform:translateY(0);} }
+    .popover-title { font-weight: 700; font-size: 13px; margin-bottom: 8px; color: var(--danger); }
+    .err-msg { font-size: 12px; line-height: 1.6; color: var(--text-sub); word-break: break-all; }
 
-    /* --- Loading --- */
-    .loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.8); display: flex; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(2px); transition: opacity 0.3s; }
+    /* ── Update bar ── */
+    .update-bar {
+      font-size: 12px; color: var(--text-muted); font-family: var(--mono);
+      padding: 4px 0 14px; text-align: right;
+    }
+
+    /* ── Loading ── */
+    .loading-overlay {
+      position: fixed; inset: 0;
+      background: rgba(240,242,245,0.85); display: flex; justify-content: center; align-items: center;
+      z-index: 200; backdrop-filter: blur(4px); transition: opacity 0.25s;
+    }
     .loading-overlay.hidden { opacity: 0; pointer-events: none; }
-    .spinner { width: 40px; height: 40px; border: 4px solid #e5e7eb; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+    .spinner {
+      width: 36px; height: 36px; border: 3px solid var(--border);
+      border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Forbidden 頁面 */
-    .forbidden-container { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #fff; font-family: sans-serif; text-align: center; }
+    /* ── Modal backdrop (admin) ── */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(15,23,42,0.4); z-index: 300;
+      display: flex; align-items: flex-start; justify-content: center;
+      padding: 40px 16px; overflow-y: auto;
+      backdrop-filter: blur(6px);
+      opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .modal-backdrop.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 14px; width: 100%; max-width: 980px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+      transform: translateY(-12px); transition: transform 0.2s;
+    }
+    .modal-backdrop.open .modal { transform: translateY(0); }
+    .modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 20px 24px; border-bottom: 1px solid var(--border);
+    }
+    .modal-title { font-size: 16px; font-weight: 700; }
+    .modal-close {
+      width: 32px; height: 32px; border-radius: 7px; border: 1px solid var(--border);
+      background: transparent; color: var(--text-sub); cursor: pointer; font-size: 18px;
+      display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+    }
+    .modal-close:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-bg); }
+    .modal-body { padding: 24px; }
+
+    /* Login */
+    .login-form { max-width: 320px; margin: 0 auto; text-align: center; padding: 12px 0; }
+    .login-form p { font-size: 14px; color: var(--text-sub); margin-bottom: 20px; }
+    .field { margin-bottom: 14px; text-align: left; }
+    .field label { display: block; font-size: 12px; font-weight: 600; color: var(--text-sub); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .field input, .field select {
+      width: 100%; padding: 9px 12px;
+      background: var(--bg-input); border: 1px solid var(--border); border-radius: 7px;
+      font-size: 14px; color: var(--text); outline: none; font-family: var(--sans);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .field input:focus, .field select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px #dbeafe; }
+    .err-msg-login { font-size: 13px; color: var(--danger); margin-top: 8px; min-height: 18px; }
+
+    /* Admin tabs */
+    .admin-tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+    .tab-btn {
+      padding: 9px 18px; font-size: 13px; font-weight: 600; cursor: pointer;
+      border: none; background: transparent; color: var(--text-sub); font-family: var(--sans);
+      border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s;
+    }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab-btn:hover  { color: var(--text); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Admin site row */
+    .admin-site-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto auto auto auto;
+      gap: 10px; align-items: center;
+      padding: 11px 0; border-bottom: 1px solid var(--border);
+    }
+    .admin-site-row:last-child { border-bottom: none; }
+    .admin-site-row .site-name { font-weight: 600; font-size: 13px; }
+    .admin-site-row .site-url  { font-size: 12px; color: var(--text-sub); font-family: var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .admin-site-row .site-cert { font-size: 12px; }
+
+    /* Members list in admin */
+    .member-row {
+      display: grid; grid-template-columns: 1fr 1fr 1fr auto auto;
+      gap: 10px; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+    }
+    .member-row:last-child { border-bottom: none; }
+    .member-name  { font-weight: 600; font-size: 13px; }
+    .member-email { font-size: 12px; color: var(--text-sub); font-family: var(--mono); }
+    .member-dept  { font-size: 12px; color: var(--text-sub); }
+
+    /* Checkbox group for notify contacts */
+    .contact-group {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      padding: 10px 12px; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 7px; min-height: 44px;
+    }
+    .contact-check {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 10px; border-radius: 6px;
+      cursor: pointer; font-size: 13px;
+      border: 1px solid var(--border); background: var(--bg-card);
+      transition: all 0.12s; user-select: none;
+    }
+    .contact-check input { display: none; }
+    .contact-check.checked {
+      background: #e0f2fe; border-color: #7dd3fc; color: #0369a1; font-weight: 600;
+    }
+    .contact-check .cc-dot {
+      width: 14px; height: 14px; border-radius: 3px; border: 2px solid var(--border-bright);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      font-size: 10px; transition: all 0.12s;
+    }
+    .contact-check.checked .cc-dot { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+    .btn-sm {
+      padding: 5px 11px; border-radius: 6px; font-size: 12px; font-weight: 600;
+      cursor: pointer; border: 1px solid var(--border); font-family: var(--sans);
+      background: var(--bg-card2); color: var(--text-sub);
+      transition: all 0.15s; white-space: nowrap;
+    }
+    .btn-sm:hover { border-color: var(--border-bright); color: var(--text); }
+    .btn-sm.danger:hover { border-color: #fca5a5; color: var(--danger); background: var(--danger-bg); }
+    .btn-sm.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn-sm.primary:hover { opacity: 0.85; }
+
+    .btn-primary {
+      padding: 10px 20px; border-radius: 7px; font-size: 14px; font-weight: 600;
+      cursor: pointer; border: none; font-family: var(--sans);
+      background: var(--primary); color: #fff; transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn-primary:hover  { opacity: 0.9; }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-outline {
+      padding: 10px 20px; border-radius: 7px; font-size: 14px; font-weight: 600;
+      cursor: pointer; border: 1px solid var(--border); font-family: var(--sans);
+      background: var(--bg-card2); color: var(--text-sub); transition: all 0.15s;
+    }
+    .btn-outline:hover { border-color: var(--border-bright); color: var(--text); }
+
+    .form-row   { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+    .form-actions {
+      display: flex; gap: 10px; justify-content: flex-end;
+      margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);
+    }
+
+    .toggle-wrap { display: flex; align-items: center; gap: 8px; padding: 9px 0; }
+    .toggle-label { font-size: 14px; color: var(--text-sub); }
+    .toggle { position: relative; width: 38px; height: 22px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; inset: 0; cursor: pointer;
+      background: var(--border); border-radius: 22px; transition: background 0.2s;
+    }
+    .slider::before {
+      content: ''; position: absolute; width: 16px; height: 16px; border-radius: 50%;
+      background: #fff; left: 3px; bottom: 3px; transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .toggle input:checked + .slider { background: var(--primary); }
+    .toggle input:checked + .slider::before { transform: translateX(16px); }
+
+    /* Forbidden */
+    .forbidden-page {
+      height: 100vh; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; text-align: center; background: var(--bg);
+    }
+    .forbidden-page h1 { font-size: 96px; font-family: var(--mono); color: var(--danger); line-height: 1; }
+    .forbidden-page h2 { margin: 12px 0; font-size: 20px; }
+    .forbidden-page p  { color: var(--text-sub); }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; z-index: 500;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 18px; font-size: 13px; max-width: 300px;
+      box-shadow: var(--shadow-md); transform: translateY(80px); opacity: 0;
+      transition: all 0.3s; pointer-events: none;
+    }
+    .toast.show    { transform: translateY(0); opacity: 1; }
+    .toast.success { border-left: 4px solid var(--success); }
+    .toast.error   { border-left: 4px solid var(--danger); }
+
+    /* Edit modal */
+    .edit-modal {
+      position: fixed; inset: 0; z-index: 400;
+      background: rgba(15,23,42,0.35); display: flex; align-items: center; justify-content: center;
+      padding: 24px; backdrop-filter: blur(6px);
+      opacity: 0; pointer-events: none; transition: opacity 0.18s;
+    }
+    .edit-modal.open { opacity: 1; pointer-events: all; }
+    .edit-modal-box {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 14px; width: 100%; max-width: 620px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.12);
+      max-height: 90vh; overflow-y: auto;
+    }
+
+    .empty-state { text-align: center; padding: 48px 20px; color: var(--text-muted); font-size: 14px; }
+    .section-label {
+      font-size: 11px; font-weight: 700; color: var(--text-sub); text-transform: uppercase;
+      letter-spacing: 0.07em; margin-bottom: 8px;
+    }
+
+    @media (max-width: 640px) {
+      .form-row, .form-row-3 { grid-template-columns: 1fr; }
+      .admin-site-row { grid-template-columns: 1fr 1fr; }
+      .member-row { grid-template-columns: 1fr 1fr; }
+      h1 { font-size: 15px; }
+      .status-pill span:last-child { display: none; }
+    }
   </style>
 </head>
 <body>
 
-  <div id="loader" class="loading-overlay">
-    <div class="spinner"></div>
-  </div>
+<!-- Loading -->
+<div id="loader" class="loading-overlay"><div class="spinner"></div></div>
+<!-- Toast -->
+<div id="toast" class="toast"></div>
 
-  <div class="container" id="main-content">
-    <header>
+<!-- Topbar -->
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="header-left">
+      <!-- 明亮清新的監控 SVG icon：雷達波紋 + 網路節點 -->
+      <div class="logo-mark">
+        <svg viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- 外圓弧 -->
+          <path d="M3.5 11 A7.5 7.5 0 0 1 18.5 11" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+          <!-- 中圓弧 -->
+          <path d="M6 11 A5 5 0 0 1 16 11" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" opacity="0.65"/>
+          <!-- 內圓弧 -->
+          <path d="M8.5 11 A2.5 2.5 0 0 1 13.5 11" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" opacity="0.9"/>
+          <!-- 中心點 -->
+          <circle cx="11" cy="11" r="1.8" fill="#0284c7"/>
+          <!-- 訊號點 右上 -->
+          <circle cx="16.5" cy="5.5" r="1.2" fill="#38bdf8" opacity="0.8"/>
+          <!-- 連接線 -->
+          <line x1="11" y1="11" x2="16.5" y2="5.5" stroke="#7dd3fc" stroke-width="0.8" opacity="0.5"/>
+        </svg>
+      </div>
       <h1>網站服務監控中心</h1>
-      <div class="last-update" id="lastUpdateDisplay">
-        <span style="display:inline-block; width:8px; height:8px; background:#10b981; border-radius:50%; box-shadow:0 0 4px #10b981;"></span>
-        等待同步中...
-      </div>
-    </header>
-
-    <div class="dashboard-grid">
-      <div class="card total-card">
-        <div class="card-label">監控總數</div>
-        <div class="card-value" id="val-total">-</div>
-      </div>
-      <div class="card up-card">
-        <div class="card-label">服務正常 (UP)</div>
-        <div class="card-value" style="color: #059669;" id="val-up">-</div>
-      </div>
-      <div class="card down-card">
-        <div class="card-label">服務異常 (DOWN)</div>
-        <div class="card-value" style="color: #dc2626;" id="val-down">-</div>
-      </div>
+      <span class="version-tag">v2.260513</span>
     </div>
-
-    <div class="toolbar">
-      <input id="q" class="search-input" placeholder="🔍 搜尋客戶名稱或網址..." />
-      <button id="refresh" class="btn-refresh">⟳ 重新整理</button>
+    <div class="header-right">
+      <div class="status-pill">
+        <span class="pulse"></span>
+        <span id="syncStatus">即時監控</span>
+      </div>
+      <button class="btn-admin" id="openAdminBtn">⚙ 管理後台</button>
     </div>
+  </div>
+</div>
 
-    <div class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th style="width:140px;">系統狀態</th>
-            <th style="width:280px;">客戶名稱</th>
-            <th>網址連結</th>
-            <th style="width:100px;">HTTP</th>
-            <th style="width:100px;">延遲</th>
-            <th style="width:180px;">最後檢查</th>
-            <th style="width:90px; text-align:center;">狀態說明</th>
-          </tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-      </table>
+<!-- Main Dashboard -->
+<div class="container" id="main-content">
+
+  <div class="cards-row">
+    <div class="card c-total">
+      <div class="card-icon">📡</div>
+      <div class="card-body"><div class="card-label">監控總數</div><div class="card-val" id="val-total">—</div></div>
+    </div>
+    <div class="card c-up">
+      <div class="card-icon">✅</div>
+      <div class="card-body"><div class="card-label">服務正常</div><div class="card-val" id="val-up">—</div></div>
+    </div>
+    <div class="card c-down">
+      <div class="card-icon">❌</div>
+      <div class="card-body"><div class="card-label">服務異常</div><div class="card-val" id="val-down">—</div></div>
+    </div>
+    <div class="card c-warn">
+      <div class="card-icon">🔒</div>
+      <div class="card-body"><div class="card-label">憑證即將到期</div><div class="card-val" id="val-cert-warn">—</div></div>
     </div>
   </div>
 
-  <script>
-    // ======= 設定區 =======
-    const ALLOW_IP = "59.125.131.181";
-    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxZsTFYOsMhRuStkKOM_IOui4suN2jXsQYWIObka0mnRVynuscYHj1Z-0bv9_vJTntm/exec"; 
-    const TOKEN = "v1_2c8c6f3a8c1d4f11b7f5a9c0d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0";
+  <div class="toolbar">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input id="q" class="search-input" placeholder="搜尋客戶名稱或產品..." autocomplete="off" />
+    </div>
+    <div class="filter-btns">
+      <button class="fbtn active" data-filter="all">全部</button>
+      <button class="fbtn" data-filter="down">🔴 異常</button>
+      <button class="fbtn" data-filter="cert">🔒 憑證警示</button>
+      <button class="fbtn" data-filter="internal">🏠 僅憑證</button>
+    </div>
+    <button id="refresh" class="btn-refresh">↺ 重新整理</button>
+  </div>
 
-    const $ = (id) => document.getElementById(id);
-    let allItems = [];
-    let userIp = "";
+  <div class="update-bar" id="lastUpdateDisplay">等待同步中...</div>
 
-    // ======= 1. IP 驗證邏輯 =======
-    async function checkAccess() {
-      try {
-        const response = await fetch('https://api.ipify.org?format=json');
-        const data = await response.json();
-        userIp = data.ip;
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:130px;">狀態</th>
+          <th style="width:200px;">客戶名稱</th>
+          <th style="width:140px;">產品</th>
+          <th style="width:80px;">HTTP</th>
+          <th style="width:90px;">延遲</th>
+          <th style="width:160px;">SSL 憑證</th>
+          <th style="width:130px;">通知對象</th>
+          <th style="width:150px;">最後檢查</th>
+          <th style="width:60px; text-align:center;">說明</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
 
-        if (userIp === ALLOW_IP) {
-          // IP 符合：顯示主頁面並載入數據
-          document.body.style.display = "block";
-          initApp();
-        } else {
-          // IP 不符：顯示拒絕頁面
-          showForbidden(userIp);
-        }
-      } catch (e) {
-        showForbidden("無法取得連線資訊");
-      }
-    }
+<!-- Admin Modal -->
+<div class="modal-backdrop" id="adminBackdrop">
+  <div class="modal" id="adminModal">
+    <div class="modal-header">
+      <div class="modal-title" id="adminModalTitle">🔐 管理者登入</div>
+      <button class="modal-close" id="closeAdminBtn">✕</button>
+    </div>
+    <div class="modal-body" id="adminModalBody"></div>
+  </div>
+</div>
 
-    function showForbidden(ip) {
-      document.body.innerHTML = `
-        <div class="forbidden-container">
-          <h1 style="font-size: 80px; color: #dc2626; margin: 0;">403</h1>
-          <h2 style="margin: 10px 0;">存取遭拒 (Forbidden)</h2>
-          <p style="color: #666; font-size: 18px;">您的 IP 位址 <b>${ip}</b> 未獲授權。</p>
-          <p style="font-size: 14px; color: #999;">請切換至公司網路環境觀看。</p>
-        </div>`;
+<!-- Edit site modal -->
+<div class="edit-modal" id="editModal">
+  <div class="edit-modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="editModalTitle">站台編輯</div>
+      <button class="modal-close" id="closeEditBtn">✕</button>
+    </div>
+    <div class="modal-body" id="editModalBody"></div>
+  </div>
+</div>
+
+<script>
+// ======= CONFIG =======
+const ALLOW_IP       = "59.125.131.181";
+const GAS_URL        = "https://script.google.com/macros/s/AKfycbx10-K3g8OMCawDfo0rFxdySkye6BfTWzlH37CJVpn88dR56Gw6aG5sOs5IcpKLXtcv/exec";
+const TOKEN          = "v1_2c8c6f3a8c1d4f11b7f5a9c0d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0";
+const ADMIN_PASSWORD = "oitc@admin2025";
+const CERT_WARN_DAYS = 30;
+
+// ======= State =======
+const $ = id => document.getElementById(id);
+let allItems     = [];
+let userIp       = "";
+let adminLoggedIn = false;
+let currentFilter = "all";
+let editingIndex  = null;
+let localSites    = [];
+
+// ── 人員資料（本地管理）──
+let members = JSON.parse(localStorage.getItem("oitc_members") || "null") || [
+  { id: "m1", name: "Annie",   email: "annie@oitc.com.tw",   dept: "工程部" },
+  { id: "m2", name: "Charlie", email: "charlie@oitc.com.tw", dept: "工程部" },
+  { id: "m3", name: "Willa",   email: "willa@oitc.com.tw",   dept: "業務部" },
+  { id: "m4", name: "Melissa", email: "melissa@oitc.com.tw", dept: "業務部" },
+  { id: "m5", name: "Johnson", email: "johnson@oitc.com.tw", dept: "業務部" },
+  { id: "m6", name: "Anyen",   email: "anyen@oitc.com.tw",   dept: "技術部" },
+  { id: "m7", name: "Isaac",   email: "isaac@oitc.com.tw",   dept: "技術部" },
+  { id: "m8", name: "Lindsay", email: "lindsay@oitc.com.tw", dept: "技術部" }
+];
+function saveMembers() { localStorage.setItem("oitc_members", JSON.stringify(members)); }
+
+// ======= IP Check =======
+async function checkAccess() {
+  try {
+    const r = await fetch("https://api.ipify.org?format=json");
+    const d = await r.json();
+    userIp = d.ip;
+    if (userIp === ALLOW_IP) {
       document.body.style.display = "block";
+      initApp();
+    } else {
+      showForbidden(userIp);
+    }
+  } catch(e) { showForbidden("無法取得 IP"); }
+}
+
+function showForbidden(ip) {
+  document.body.innerHTML = `<div class="forbidden-page"><h1>403</h1><h2>存取遭拒 (Forbidden)</h2><p>您的 IP 位址 <b>${ip}</b> 未獲授權</p><p style="margin-top:8px;font-size:14px;color:#9ca3af">請切換至公司網路環境觀看</p></div>`;
+  document.body.style.display = "block";
+}
+
+function initApp() { load(); setInterval(load, 60000); }
+
+// ======= Data Load =======
+async function load() {
+  if (allItems.length === 0) $("loader").classList.remove("hidden");
+  $("lastUpdateDisplay").textContent = "⟳ 更新中...";
+  try {
+    const url = `${GAS_URL}?token=${encodeURIComponent(TOKEN)}&client_ip=${encodeURIComponent(userIp)}`;
+    const res  = await fetch(url, { cache: "no-store" });
+    const data = await res.json();
+    if (!data.ok) { alert(`後端拒絕：${data.error||"unknown"}`); return; }
+    allItems = data.items || [];
+    render();
+    const now = new Date();
+    $("lastUpdateDisplay").textContent = `✔ 最後更新：${now.toLocaleTimeString("zh-TW",{hour12:false})}`;
+  } catch(e) {
+    $("lastUpdateDisplay").textContent = "✖ 同步失敗";
+  } finally {
+    $("loader").classList.add("hidden");
+  }
+}
+
+// ======= Render =======
+function render() {
+  const q = ($("q").value || "").trim().toLowerCase();
+  let filtered = allItems.filter(it => {
+    const searchTarget = ((it.customer||"") + " " + (it.product||"")).toLowerCase();
+    if (q && !searchTarget.includes(q) && !(it.url||"").toLowerCase().includes(q)) return false;
+    if (currentFilter === "down"     && it.status !== "DOWN") return false;
+    if (currentFilter === "cert"     && !isCertWarning(it))   return false;
+    if (currentFilter === "internal" && !it.certOnly)         return false;
+    return true;
+  });
+
+  const tbody = $("tbody");
+  tbody.innerHTML = "";
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="9" class="empty-state">查無相關資料</td></tr>`;
+  }
+
+  filtered.forEach(it => {
+    const certInfo     = buildCertCell(it);
+    const notifyChips  = buildNotifyChips(it);
+    const isInternal   = !!it.certOnly;
+    const tr = document.createElement("tr");
+
+    let statusCell;
+    if (isInternal) {
+      statusCell = `<span class="badge cert-only"><span class="badge-dot"></span>僅憑證通知</span>`;
+    } else {
+      statusCell = badgeHtml(it.status);
     }
 
-    function initApp() {
-      load();
-      setInterval(load, 60 * 1000); // 自動刷新
+    let customerCell;
+    if (it.url) {
+      customerCell = `<a href="${esc(it.url)}" class="customer-link" target="_blank" rel="noopener noreferrer">${esc(it.customer||"(未命名)")} <span class="link-icon">↗</span></a>`;
+    } else {
+      customerCell = `<span class="cell-customer">${esc(it.customer||"(未命名)")}</span>`;
     }
+    if (isInternal) customerCell += `<br><span class="badge-internal">🏠 內部</span>`;
 
-    // ======= 2. 數據處理 =======
-    async function load() {
-      if(allItems.length === 0) $("loader").classList.remove("hidden");
-      $("lastUpdateDisplay").innerHTML = `⟳ 更新中...`;
-      
-      try {
-        const url = `${GAS_WEB_APP_URL}?token=${encodeURIComponent(TOKEN)}&client_ip=${encodeURIComponent(userIp)}`;
-        const res = await fetch(url, { cache: "no-store" });
-        const data = await res.json();
-        
-        if (!data.ok) { 
-          alert(`後端拒絕存取：${data.error || "unknown"}`); 
-          return; 
-        }
-        
-        allItems = data.items || [];
-        render(allItems);
-        
-        const now = new Date();
-        $("lastUpdateDisplay").innerHTML = `<span style="color:#059669">✔</span> 最後更新：${now.toLocaleTimeString('zh-TW', { hour12: false })}`;
-      } catch(e) {
-        console.error(e);
-        $("lastUpdateDisplay").innerHTML = `<span style="color:#dc2626">✖</span> 同步失敗`;
-      } finally {
-        $("loader").classList.add("hidden");
-      }
-    }
+    const productCell = it.product
+      ? `<span class="cell-product">${esc(it.product)}</span>`
+      : `<span class="text-sub">—</span>`;
 
-    function render(items) {
-      const q = ($("q").value || "").trim().toLowerCase();
-      const filtered = items.filter(it => {
-        if (!q) return true;
-        return (it.customer || "").toLowerCase().includes(q) || (it.url || "").toLowerCase().includes(q);
-      });
+    tr.innerHTML = `
+      <td>${statusCell}</td>
+      <td>${customerCell}</td>
+      <td>${productCell}</td>
+      <td>${(!isInternal && it.httpCode) ? `<span class="code-pill">${esc(String(it.httpCode))}</span>` : '<span class="text-sub">—</span>'}</td>
+      <td class="text-sub mono">${(!isInternal && it.latencyMs) ? it.latencyMs+" ms" : "—"}</td>
+      <td>${certInfo}</td>
+      <td>${notifyChips}</td>
+      <td class="text-sub mono">${esc(it.checkedAt||"")}</td>
+      <td class="col-reason">
+        ${(!isInternal && it.status === "DOWN")
+          ? `<details class="err-details"><summary><div class="btn-info">ℹ</div></summary>
+              <div class="err-popover"><div class="popover-title">⚠ 異常詳細</div><div class="err-msg">${readableReason(it.reason)}</div></div></details>`
+          : `<span class="text-sub">—</span>`}
+      </td>`;
+    tbody.appendChild(tr);
+  });
 
-      const tbody = $("tbody");
-      tbody.innerHTML = "";
+  const monitored = allItems.filter(x => !x.certOnly);
+  const up        = monitored.filter(x => x.status === "UP").length;
+  const down      = monitored.filter(x => x.status === "DOWN").length;
+  const certWarn  = allItems.filter(x => isCertWarning(x)).length;
+  $("val-total").textContent     = monitored.length;
+  $("val-up").textContent        = up;
+  $("val-down").textContent      = down;
+  $("val-cert-warn").textContent = certWarn;
+}
 
-      if(filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 40px; color:#999;">查無相關資料</td></tr>`;
-      }
+function badgeHtml(s) {
+  if (s==="UP")   return `<span class="badge up"><span class="badge-dot"></span>正常運作</span>`;
+  if (s==="DOWN") return `<span class="badge down"><span class="badge-dot"></span>異常中斷</span>`;
+  return `<span class="badge unknown"><span class="badge-dot"></span>檢查中</span>`;
+}
 
-      filtered.forEach((it, index) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${getBadgeHtml(it.status)}</td>
-          <td style="font-weight:600;">${it.customer || "(未命名)"}</td>
-          <td><a href="${it.url}" class="link" target="_blank" rel="noopener noreferrer">${it.url}</a></td>
-          <td>${it.httpCode ? `<span class="text-code">${it.httpCode}</span>` : "-"}</td>
-          <td class="text-sm">${it.latencyMs ? `${it.latencyMs} ms` : "-"}</td>
-          <td class="text-sm">${it.checkedAt || ""}</td>
-          <td class="col-reason">
-            ${it.status === "DOWN" ? `
-              <details class="error-details">
-                <summary class="btn-info-toggle">ℹ️</summary>
-                <div class="error-popover">
-                  <div class="popover-title">⚠️ 異常詳細資訊</div>
-                  <div class="err-msg-full">${getReadableReason(it.reason)}</div>
-                </div>
-              </details>
-            ` : `<span class="text-sm" style="color:#9ca3af">OK</span>`}
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
+function buildCertCell(it) {
+  if (!it.certExpiry) return `<span class="cert-none">—</span>`;
+  const expDate = new Date(it.certExpiry);
+  if (isNaN(expDate)) return `<span class="cert-none">—</span>`;
+  const daysLeft = Math.ceil((expDate - Date.now()) / 86400000);
+  if (daysLeft < 0)              return `<span class="cert-badge cert-expired">🔒 已過期</span><div class="cert-expiry-row cert-expiry-expired">${it.certExpiry}</div>`;
+  if (daysLeft <= CERT_WARN_DAYS) return `<span class="cert-badge cert-warn">🔒 ${daysLeft} 天</span><div class="cert-expiry-row cert-expiry-warn">${it.certExpiry}</div>`;
+  return `<span class="cert-badge cert-ok">🔒 ${daysLeft} 天</span><div class="cert-expiry-row">${it.certExpiry}</div>`;
+}
 
-      updateStats(filtered);
-    }
+function buildNotifyChips(it) {
+  if (!it.notifyIds || !it.notifyIds.length) return `<span class="text-sub">—</span>`;
+  const chips = it.notifyIds.map(id => {
+    const m = members.find(m => m.id === id);
+    return m ? `<span class="chip">${esc(m.name)}</span>` : "";
+  }).filter(Boolean).join("");
+  return `<div class="notify-chips">${chips}</div>`;
+}
 
-    function getBadgeHtml(status) {
-      if (status === "UP") return `<span class="badge up"><span class="badge-dot"></span>正常運作</span>`;
-      if (status === "DOWN") return `<span class="badge down"><span class="badge-dot"></span>異常中斷</span>`;
-      return `<span class="badge unknown"><span class="badge-dot"></span>檢查中</span>`;
-    }
+function isCertWarning(it) {
+  if (!it.certExpiry) return false;
+  const d = new Date(it.certExpiry);
+  if (isNaN(d)) return false;
+  return Math.ceil((d - Date.now()) / 86400000) <= CERT_WARN_DAYS;
+}
 
-    function updateStats(items) {
-      const up = items.filter(x => x.status === "UP").length;
-      const down = items.filter(x => x.status === "DOWN").length;
-      $("val-total").textContent = items.length;
-      $("val-up").textContent = up;
-      $("val-down").textContent = down;
-    }
+function readableReason(reason) {
+  if (!reason) return "未知錯誤";
+  const r = String(reason).toUpperCase();
+  if (r.includes("TIMEOUT"))    return `<b>⏱ 連線逾時</b><br>伺服器回應超過限定秒數`;
+  if (r.includes("SSL"))        return `<b>🔒 SSL 憑證錯誤</b><br>憑證過期或驗證失敗`;
+  if (r.includes("DNS"))        return `<b>🌐 DNS 解析失敗</b><br>找不到該網域主機 IP`;
+  if (r.includes("FETCH_ERROR"))return `<b>🚫 連線失敗</b><br>可能被防火牆阻擋或主機下線`;
+  if (r.includes("HTTP_"))      return `<b>❌ HTTP 錯誤 ${r.split("_")[1]}</b><br>伺服器回傳異常狀態碼`;
+  return esc(reason);
+}
 
-    // ======= 新增：錯誤原因翻譯函數 =======
-    function getReadableReason(reason) {
-      if (!reason) return "未知錯誤";
-      
-      const r = String(reason).toUpperCase();
-      
-      if (r.includes("TIMEOUT")) {
-        return `<b>⏱️ 連線逾時</b><br><span style="color:#666">伺服器回應超過 30 秒，可能負載過高。</span>`;
-      }
-      if (r.includes("FETCH_ERROR")) {
-        return `<b>🚫 連線失敗 (Fetch Error)</b><br><span style="color:#666">Google 無法建立連線，可能被防火牆阻擋。</span>`;
-      }
-      if (r.includes("SSL")) {
-        return `<b>🔒 SSL 憑證錯誤</b><br><span style="color:#666">憑證過期或不安全 (Https 驗證失敗)。</span>`;
-      }
-      if (r.includes("DNS")) {
-        return `<b>🌐 DNS 解析失敗</b><br><span style="color:#666">找不到該網域的主機 IP。</span>`;
-      }
-      if (r.includes("KEYWORD")) {
-        return `<b>⚠️ 關鍵字錯誤</b><br><span style="color:#666">網頁內容包含錯誤片語 (如: 404 Not Found)。</span>`;
-      }
-      if (r.includes("HTTP_")) {
-        return `<b>❌ HTTP 錯誤 ${r.split('_')[1]}</b><br><span style="color:#666">伺服器回傳異常狀態碼。</span>`;
-      }
-      
-      return escapeHtml(reason); // 若無匹配則顯示原始文字
-    }
+function esc(s) {
+  return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
 
-    function escapeHtml(s) {
-      return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-    }
+// ======= Filters =======
+document.querySelectorAll(".fbtn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    currentFilter = btn.dataset.filter;
+    document.querySelectorAll(".fbtn").forEach(b => b.className = "fbtn");
+    if (currentFilter === "down")     btn.classList.add("fbtn","active-danger");
+    else if (currentFilter === "cert")btn.classList.add("fbtn","active-warn");
+    else btn.classList.add("fbtn","active");
+    render();
+  });
+});
+$("q").addEventListener("input", render);
+$("refresh").addEventListener("click", load);
 
-    // 事件
-    $("refresh").addEventListener("click", load);
-    $("q").addEventListener("input", () => render(allItems));
-    
-    // 點擊外部關閉 popover
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('summary')) {
-        document.querySelectorAll('details[open]').forEach(d => {
-          if (!e.target.closest('.error-popover')) d.removeAttribute('open');
-        });
+document.addEventListener("click", e => {
+  if (!e.target.closest("summary")) {
+    document.querySelectorAll("details[open]").forEach(d => {
+      if (!e.target.closest(".err-popover")) d.removeAttribute("open");
+    });
+  }
+});
+
+// ======= Admin Modal =======
+$("openAdminBtn").addEventListener("click", openAdminModal);
+$("closeAdminBtn").addEventListener("click", closeAdminModal);
+$("adminBackdrop").addEventListener("click", e => { if (e.target===$("adminBackdrop")) closeAdminModal(); });
+
+function openAdminModal() {
+  adminLoggedIn ? renderAdminUI() : renderLoginForm();
+  $("adminBackdrop").classList.add("open");
+}
+function closeAdminModal() { $("adminBackdrop").classList.remove("open"); }
+
+// ======= Login =======
+function renderLoginForm() {
+  $("adminModalTitle").textContent = "🔐 管理者登入";
+  $("adminModalBody").innerHTML = `
+    <div class="login-form">
+      <p>請輸入管理者密碼以進入站台管理介面</p>
+      <div class="field">
+        <label>管理者密碼</label>
+        <input type="password" id="pwInput" placeholder="請輸入密碼" autocomplete="current-password" />
+      </div>
+      <div class="err-msg-login" id="loginErr"></div>
+      <div style="margin-top:16px;">
+        <button class="btn-primary" style="width:100%;" id="loginBtn">登入</button>
+      </div>
+    </div>`;
+  $("pwInput").addEventListener("keydown", e => { if (e.key==="Enter") doLogin(); });
+  $("loginBtn").addEventListener("click", doLogin);
+  setTimeout(() => $("pwInput").focus(), 100);
+}
+
+function doLogin() {
+  const pw = $("pwInput").value;
+  if (pw === ADMIN_PASSWORD) { adminLoggedIn = true; renderAdminUI(); }
+  else { $("loginErr").textContent = "密碼錯誤，請重試"; $("pwInput").value = ""; $("pwInput").focus(); }
+}
+
+// ======= Admin UI =======
+function renderAdminUI() {
+  $("adminModalTitle").textContent = "⚙ 站台管理";
+  localSites = allItems.map(x => Object.assign({}, x, { notifyIds: x.notifyIds ? [...x.notifyIds] : [] }));
+  $("adminModalBody").innerHTML = `
+    <div class="admin-tabs">
+      <button class="tab-btn active" data-tab="sites">站台列表</button>
+      <button class="tab-btn" data-tab="add">＋ 新增站台</button>
+      <button class="tab-btn" data-tab="members">👤 人員管理</button>
+    </div>
+    <div class="tab-panel active" id="tab-sites">${renderSiteListHtml()}</div>
+    <div class="tab-panel" id="tab-add">${renderAddFormHtml()}</div>
+    <div class="tab-panel" id="tab-members">${renderMembersHtml()}</div>`;
+
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+      btn.classList.add("active");
+      $("tab-"+btn.dataset.tab).classList.add("active");
+    });
+  });
+  bindSiteListEvents();
+  bindAddFormEvents();
+  bindMemberEvents();
+}
+
+// ── Site list ──
+function renderSiteListHtml() {
+  if (!localSites.length) return `<div class="empty-state">目前無站台資料</div>`;
+  return localSites.map((s, i) => {
+    const certInfo = s.certExpiry ? (() => {
+      const d = new Date(s.certExpiry);
+      if (isNaN(d)) return `<span class="cert-none">${esc(s.certExpiry)}</span>`;
+      const days = Math.ceil((d-Date.now())/86400000);
+      if (days < 0)  return `<span style="color:var(--danger)">⚠ 已過期</span>`;
+      if (days <= 30) return `<span style="color:var(--warning)">⚠ ${days}天後到期</span>`;
+      return `<span style="color:var(--success)">${days}天後到期</span>`;
+    })() : `<span class="cert-none">未設定</span>`;
+
+    const statusBadge = s.certOnly
+      ? `<span class="badge cert-only" style="font-size:10px;">僅憑證</span>`
+      : `<span class="badge ${(s.status||"").toLowerCase()==="up"?"up":(s.status||"").toLowerCase()==="down"?"down":"unknown"}" style="font-size:10px;">${esc(s.status||"UNKNOWN")}</span>`;
+
+    return `<div class="admin-site-row" data-idx="${i}">
+      <div>
+        <div class="site-name">${esc(s.customer||"(未命名)")} ${s.product?`<span class="cell-product">${esc(s.product)}</span>`:""}</div>
+        <div class="site-url">${esc(s.url||"（無網址）")}</div>
+      </div>
+      <div class="site-cert">${certInfo}</div>
+      ${statusBadge}
+      <label class="toggle" title="啟用監控">
+        <input type="checkbox" class="site-enable-toggle" ${(s.enabled!==false&&!s.certOnly)?"checked":""} ${s.certOnly?"disabled":""} data-idx="${i}" />
+        <span class="slider"></span>
+      </label>
+      <button class="btn-sm edit-btn" data-idx="${i}">編輯</button>
+      <button class="btn-sm danger delete-btn" data-idx="${i}">刪除</button>
+    </div>`;
+  }).join("");
+}
+
+function bindSiteListEvents() {
+  document.querySelectorAll(".edit-btn").forEach(btn => {
+    btn.addEventListener("click", () => openEditModal(parseInt(btn.dataset.idx)));
+  });
+  document.querySelectorAll(".delete-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const i = parseInt(btn.dataset.idx);
+      const name = localSites[i].customer || localSites[i].url;
+      if (confirm(`確定刪除「${name}」？此動作無法復原。`)) {
+        localSites.splice(i, 1);
+        saveToSheet(() => refreshAdminSiteList());
       }
     });
+  });
+  document.querySelectorAll(".site-enable-toggle").forEach(chk => {
+    chk.addEventListener("change", () => {
+      const i = parseInt(chk.dataset.idx);
+      localSites[i].enabled = chk.checked;
+      saveToSheet(() => {});
+    });
+  });
+}
 
-    // 啟動檢測
-    checkAccess();
-  </script>
+function refreshAdminSiteList() {
+  $("tab-sites").innerHTML = renderSiteListHtml();
+  bindSiteListEvents();
+}
+
+// ── Add/Edit form ──
+function renderAddFormHtml(data) {
+  const d = data || {};
+  const notifyIds = d.notifyIds || [];
+
+  const contactChecks = members.map(m => {
+    const checked = notifyIds.includes(m.id);
+    return `<label class="contact-check ${checked?"checked":""}" data-mid="${m.id}">
+      <input type="checkbox" value="${m.id}" ${checked?"checked":""} />
+      <span class="cc-dot">${checked?"✓":""}</span>
+      ${esc(m.name)}
+    </label>`;
+  }).join("");
+
+  return `
+    <div class="form-row">
+      <div class="field"><label>客戶名稱 *</label><input type="text" id="f-customer" placeholder="例：國立XX大學" value="${esc(d.customer||"")}" /></div>
+      <div class="field"><label>產品名稱</label><input type="text" id="f-product" placeholder="例：ee-class、HyperPDM" value="${esc(d.product||"")}" /></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>網址</label><input type="text" id="f-url" placeholder="https://..." value="${esc(d.url||"")}" /></div>
+      <div class="field"><label>SSL 憑證到期日</label><input type="date" id="f-cert" value="${esc(d.certExpiry||"")}" /></div>
+    </div>
+    <div class="form-row" style="margin-bottom:14px;">
+      <div class="field">
+        <label>監控模式</label>
+        <div class="toggle-wrap">
+          <label class="toggle">
+            <input type="checkbox" id="f-certonly" ${d.certOnly?"checked":""} />
+            <span class="slider"></span>
+          </label>
+          <span class="toggle-label">僅憑證通知（不監控網站狀態）</span>
+        </div>
+      </div>
+      <div class="field" id="f-enabled-wrap">
+        <label>啟用監控</label>
+        <div class="toggle-wrap">
+          <label class="toggle">
+            <input type="checkbox" id="f-enabled" ${d.enabled!==false?"checked":""} />
+            <span class="slider"></span>
+          </label>
+          <span class="toggle-label">啟用</span>
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <div class="section-label">憑證到期通知對象</div>
+      <div class="contact-group" id="contact-group">
+        ${members.length ? contactChecks : '<span class="cert-none">尚無人員資料，請先至「人員管理」新增</span>'}
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-outline" id="cancelAddBtn">取消</button>
+      <button class="btn-primary" id="submitAddBtn">儲存</button>
+    </div>`;
+}
+
+function bindAddFormEvents() {
+  // certOnly toggle disables enabled toggle
+  const certOnlyChk = $("f-certonly");
+  if (certOnlyChk) {
+    const syncCertOnly = () => {
+      const wrap = $("f-enabled-wrap");
+      if (certOnlyChk.checked) {
+        wrap.style.opacity = "0.4"; wrap.style.pointerEvents = "none";
+        $("f-enabled").checked = false;
+      } else {
+        wrap.style.opacity = ""; wrap.style.pointerEvents = "";
+        $("f-enabled").checked = true;
+      }
+    };
+    certOnlyChk.addEventListener("change", syncCertOnly);
+    syncCertOnly();
+  }
+
+  // contact checkboxes UI toggle
+  document.querySelectorAll("#contact-group .contact-check").forEach(lbl => {
+    lbl.addEventListener("click", e => {
+      e.preventDefault();
+      const chk = lbl.querySelector("input");
+      chk.checked = !chk.checked;
+      const dot = lbl.querySelector(".cc-dot");
+      if (chk.checked) { lbl.classList.add("checked"); dot.textContent = "✓"; }
+      else { lbl.classList.remove("checked"); dot.textContent = ""; }
+    });
+  });
+
+  $("cancelAddBtn") && $("cancelAddBtn").addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn")[0].click();
+  });
+  // 新增時才綁 submitAdd
+  $("submitAddBtn") && $("submitAddBtn").addEventListener("click", submitAdd);
+}
+
+function getFormNotifyIds() {
+  return [...document.querySelectorAll("#contact-group input:checked")].map(c => c.value);
+}
+
+function submitAdd() {
+  const customer = ($("f-customer").value||"").trim();
+  const url      = ($("f-url").value||"").trim();
+  if (!customer) { showToast("客戶名稱為必填項目","error"); return; }
+  if (url && !url.startsWith("http")) { showToast("網址格式錯誤，請以 https:// 開頭","error"); return; }
+  const certOnly = $("f-certonly").checked;
+  const entry = {
+    customer,
+    product:    ($("f-product").value||"").trim(),
+    url,
+    certOnly,
+    enabled:    certOnly ? false : $("f-enabled").checked,
+    certExpiry: $("f-cert").value || "",
+    notifyIds:  getFormNotifyIds(),
+    status: "UNKNOWN", checkedAt: "", httpCode: "", latencyMs: "", reason: ""
+  };
+  localSites.push(entry);
+  saveToSheet(() => {
+    showToast("站台已新增","success");
+    document.querySelectorAll(".tab-btn")[0].click();
+    refreshAdminSiteList();
+  });
+}
+
+// ── Edit Modal ──
+$("closeEditBtn").addEventListener("click", () => $("editModal").classList.remove("open"));
+$("editModal").addEventListener("click", e => { if (e.target===$("editModal")) $("editModal").classList.remove("open"); });
+
+function openEditModal(idx) {
+  editingIndex = idx;
+  const s = localSites[idx];
+  $("editModalTitle").textContent = `編輯：${s.customer||s.url}`;
+
+  // ── 根本修正：renderAddFormHtml 產生的 id 與 tab-add panel 裡的 id 重複，
+  //    因此所有 DOM 查詢必須限定在 editModalBody 容器內，絕不使用全域 getElementById ──
+  const container = $("editModalBody");
+  container.innerHTML = renderAddFormHtml(s);
+  const qid = id => container.querySelector("#" + id);
+
+  // 1. certOnly toggle
+  const certOnlyChk = qid("f-certonly");
+  if (certOnlyChk) {
+    const syncCertOnly = () => {
+      const wrap = qid("f-enabled-wrap");
+      if (certOnlyChk.checked) {
+        wrap.style.opacity = "0.4"; wrap.style.pointerEvents = "none";
+        qid("f-enabled").checked = false;
+      } else {
+        wrap.style.opacity = ""; wrap.style.pointerEvents = "";
+        qid("f-enabled").checked = true;
+      }
+    };
+    certOnlyChk.addEventListener("change", syncCertOnly);
+    syncCertOnly();
+  }
+
+  // 2. contact checkboxes
+  container.querySelectorAll("#contact-group .contact-check").forEach(lbl => {
+    lbl.addEventListener("click", e => {
+      e.preventDefault();
+      const chk = lbl.querySelector("input");
+      chk.checked = !chk.checked;
+      const dot = lbl.querySelector(".cc-dot");
+      if (chk.checked) { lbl.classList.add("checked"); dot.textContent = "✓"; }
+      else { lbl.classList.remove("checked"); dot.textContent = ""; }
+    });
+  });
+
+  // 3. 取消按鈕
+  qid("cancelAddBtn").addEventListener("click", () => $("editModal").classList.remove("open"));
+
+  // 4. 儲存按鈕：直接從容器取得，不會拿到 tab-add 裡同名的按鈕
+  const submitBtn = qid("submitAddBtn");
+  submitBtn.textContent = "更新";
+  submitBtn.addEventListener("click", () => submitEdit(container));
+
+  $("editModal").classList.add("open");
+}
+
+function submitEdit(container) {
+  const qid = id => container.querySelector("#" + id);
+  const customer = (qid("f-customer").value||"").trim();
+  const url      = (qid("f-url").value||"").trim();
+  if (!customer) { showToast("客戶名稱為必填","error"); return; }
+  if (url && !url.startsWith("http")) { showToast("網址格式錯誤，請以 https:// 開頭","error"); return; }
+  const certOnly = qid("f-certonly").checked;
+  // getFormNotifyIds 也須限定在容器內
+  const notifyIds = [...container.querySelectorAll("#contact-group input:checked")].map(c => c.value);
+  localSites[editingIndex] = Object.assign({}, localSites[editingIndex], {
+    customer,
+    product:    (qid("f-product").value||"").trim(),
+    url,
+    certOnly,
+    enabled:    certOnly ? false : qid("f-enabled").checked,
+    certExpiry: qid("f-cert").value || "",
+    notifyIds
+  });
+  $("editModal").classList.remove("open");
+  saveToSheet(() => {
+    showToast("站台已更新","success");
+    refreshAdminSiteList();
+  });
+}
+
+// ── Members Tab ──
+function renderMembersHtml() {
+  const rows = members.length ? members.map((m, i) => `
+    <div class="member-row" data-mid="${m.id}">
+      <div><span class="member-name">${esc(m.name)}</span></div>
+      <div><span class="member-email">${esc(m.email)}</span></div>
+      <div><span class="member-dept">${esc(m.dept||"")}</span></div>
+      <button class="btn-sm edit-member-btn" data-idx="${i}">編輯</button>
+      <button class="btn-sm danger delete-member-btn" data-idx="${i}">刪除</button>
+    </div>`).join("")
+    : `<div class="empty-state">尚無人員資料</div>`;
+
+  return `
+    <div style="margin-bottom:16px; display:flex; justify-content:flex-end;">
+      <button class="btn-sm primary" id="addMemberBtn">＋ 新增人員</button>
+    </div>
+    <div id="member-list">${rows}</div>
+    <div id="member-form-area" style="margin-top:20px;"></div>`;
+}
+
+function bindMemberEvents() {
+  $("addMemberBtn") && $("addMemberBtn").addEventListener("click", () => openMemberForm());
+  bindMemberRowEvents();
+}
+
+function bindMemberRowEvents() {
+  document.querySelectorAll(".edit-member-btn").forEach(btn => {
+    btn.addEventListener("click", () => openMemberForm(parseInt(btn.dataset.idx)));
+  });
+  document.querySelectorAll(".delete-member-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const i = parseInt(btn.dataset.idx);
+      if (confirm(`確定刪除「${members[i].name}」？`)) {
+        members.splice(i, 1);
+        saveMembers();
+        $("tab-members").innerHTML = renderMembersHtml();
+        bindMemberEvents();
+        showToast("人員已刪除");
+      }
+    });
+  });
+}
+
+let editingMemberIdx = null;
+function openMemberForm(idx) {
+  editingMemberIdx = (idx !== undefined) ? idx : null;
+  const m = (idx !== undefined) ? members[idx] : {};
+  $("member-form-area").innerHTML = `
+    <div style="padding-top:16px; border-top:1px solid var(--border);">
+      <div class="section-label" style="margin-bottom:12px;">${editingMemberIdx !== null ? "編輯人員" : "新增人員"}</div>
+      <div class="form-row-3">
+        <div class="field"><label>姓名 *</label><input type="text" id="mf-name" placeholder="姓名" value="${esc(m.name||"")}" /></div>
+        <div class="field"><label>Email *</label><input type="email" id="mf-email" placeholder="email@oitc.com.tw" value="${esc(m.email||"")}" /></div>
+        <div class="field"><label>部門</label><input type="text" id="mf-dept" placeholder="部門名稱" value="${esc(m.dept||"")}" /></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-outline" id="cancelMemberBtn">取消</button>
+        <button class="btn-primary" id="saveMemberBtn">儲存</button>
+      </div>
+    </div>`;
+  $("cancelMemberBtn").addEventListener("click", () => { $("member-form-area").innerHTML = ""; });
+  $("saveMemberBtn").addEventListener("click", saveMember);
+  $("mf-name").focus();
+}
+
+function saveMember() {
+  const name  = ($("mf-name").value||"").trim();
+  const email = ($("mf-email").value||"").trim();
+  const dept  = ($("mf-dept").value||"").trim();
+  if (!name || !email) { showToast("姓名與 Email 為必填","error"); return; }
+  if (editingMemberIdx !== null) {
+    members[editingMemberIdx] = { ...members[editingMemberIdx], name, email, dept };
+  } else {
+    members.push({ id: "m"+Date.now(), name, email, dept });
+  }
+  saveMembers();
+  $("tab-members").innerHTML = renderMembersHtml();
+  bindMemberEvents();
+  showToast(editingMemberIdx !== null ? "人員已更新" : "人員已新增");
+}
+
+// ── Save to Sheet ──
+function saveToSheet(callback) {
+  const body = JSON.stringify({
+    token: TOKEN, client_ip: userIp, action: "updateSites",
+    sites: localSites.map(s => ({
+      customer:          s.customer||"",
+      product:           s.product||"",
+      url:               s.url||"",
+      certOnly:          s.certOnly ? "TRUE" : "FALSE",
+      enabled:           s.enabled !== false ? "TRUE" : "FALSE",
+      certExpiry:        s.certExpiry||"",
+      notifyIds:         (s.notifyIds||[]).join(","),
+      last_status:       s.status||"UNKNOWN",
+      last_checked_at:   s.checkedAt||"",
+      last_http_code:    s.httpCode||"",
+      last_latency_ms:   s.latencyMs||"",
+      last_reason:       s.reason||"",
+      last_notified_at:  s.last_notified_at||"",
+      fail_count:        s.fail_count||0,
+      success_count:     s.success_count||0
+    }))
+  });
+  fetch(GAS_URL, { method:"POST", headers:{"Content-Type":"text/plain"}, body })
+    .then(r => r.json()).then(d => {
+      if (d.ok) {
+        allItems = localSites.map(x => Object.assign({}, x));
+        render();
+        if (callback) callback();
+      } else { showToast("儲存失敗：" + (d.error||"unknown"), "error"); }
+    }).catch(() => { showToast("儲存失敗：網路錯誤","error"); });
+}
+
+// ── Toast ──
+function showToast(msg, type="success") {
+  const t = $("toast");
+  t.textContent = (type==="success" ? "✔ " : "✖ ") + msg;
+  t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove("show"), 3000);
+}
+
+// ======= Start =======
+checkAccess();
+</script>
 </body>
 </html>
