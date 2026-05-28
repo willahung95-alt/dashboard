@@ -362,14 +362,32 @@
     /* Admin site row */
     .admin-site-row {
       display: grid;
-      grid-template-columns: 1fr auto auto auto auto auto;
+      grid-template-columns: 24px 1fr auto auto auto auto auto auto;
       gap: 10px; align-items: center;
       padding: 11px 0; border-bottom: 1px solid var(--border);
+      transition: background 0.12s, box-shadow 0.12s;
     }
     .admin-site-row:last-child { border-bottom: none; }
     .admin-site-row .site-name { font-weight: 600; font-size: 13px; }
     .admin-site-row .site-url  { font-size: 12px; color: var(--text-sub); font-family: var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .admin-site-row .site-cert { font-size: 12px; }
+    /* 拖曳手把 */
+    .drag-handle {
+      display: flex; align-items: center; justify-content: center;
+      cursor: grab; color: var(--text-muted); font-size: 14px;
+      width: 24px; height: 32px; border-radius: 4px;
+      transition: color 0.12s, background 0.12s;
+      user-select: none; flex-shrink: 0;
+    }
+    .drag-handle:hover { color: var(--text-sub); background: var(--bg); }
+    .drag-handle:active { cursor: grabbing; }
+    /* 拖曳中的列 */
+    .admin-site-row.dragging {
+      opacity: 0.45; background: var(--primary-dim);
+    }
+    /* 拖曳目標插入線 */
+    .admin-site-row.drag-over-top    { box-shadow: 0 -2px 0 var(--primary); }
+    .admin-site-row.drag-over-bottom { box-shadow: 0  2px 0 var(--primary); }
 
     /* Members list in admin */
     .member-row {
@@ -498,7 +516,7 @@
 
     @media (max-width: 640px) {
       .form-row, .form-row-3 { grid-template-columns: 1fr; }
-      .admin-site-row { grid-template-columns: 1fr 1fr; }
+      .admin-site-row { grid-template-columns: 24px 1fr 1fr; }
       .member-row { grid-template-columns: 1fr 1fr; }
       h1 { font-size: 15px; }
       .status-pill span:last-child { display: none; }
@@ -534,7 +552,7 @@
         </svg>
       </div>
       <h1>網站服務監控中心</h1>
-      <span class="version-tag">v2.260513</span>
+      <span class="version-tag">v2.260528</span>
     </div>
     <div class="header-right">
       <div class="status-pill">
@@ -900,6 +918,7 @@ function renderAdminUI() {
   bindSiteListEvents();
   bindAddFormEvents();
   bindMemberEvents();
+  bindDragSort();
 }
 
 // ── Site list ──
@@ -919,7 +938,8 @@ function renderSiteListHtml() {
       ? `<span class="badge cert-only" style="font-size:10px;">僅憑證</span>`
       : `<span class="badge ${(s.status||"").toLowerCase()==="up"?"up":(s.status||"").toLowerCase()==="down"?"down":"unknown"}" style="font-size:10px;">${esc(s.status||"UNKNOWN")}</span>`;
 
-    return `<div class="admin-site-row" data-idx="${i}">
+    return `<div class="admin-site-row" data-idx="${i}" draggable="true">
+      <div class="drag-handle" title="拖曳排序">⠿</div>
       <div>
         <div class="site-name">${esc(s.customer||"(未命名)")} ${s.product?`<span class="cell-product">${esc(s.product)}</span>`:""}</div>
         <div class="site-url">${esc(s.url||"（無網址）")}</div>
@@ -962,6 +982,7 @@ function bindSiteListEvents() {
 function refreshAdminSiteList() {
   $("tab-sites").innerHTML = renderSiteListHtml();
   bindSiteListEvents();
+  bindDragSort();
 }
 
 // ── Add/Edit form ──
@@ -1245,6 +1266,76 @@ function saveMember() {
   $("tab-members").innerHTML = renderMembersHtml();
   bindMemberEvents();
   showToast(editingMemberIdx !== null ? "人員已更新" : "人員已新增");
+}
+
+// ── 拖曳排序 ──
+function bindDragSort() {
+  const container = $("tab-sites");
+  if (!container) return;
+
+  let dragSrc = null;   // 正在被拖曳的列元素
+
+  container.querySelectorAll(".admin-site-row").forEach(row => {
+    // 僅手把觸發拖曳（避免點按鈕時誤觸）
+    const handle = row.querySelector(".drag-handle");
+    if (handle) {
+      handle.addEventListener("mousedown", () => { row.draggable = true; });
+      handle.addEventListener("mouseup",   () => { row.draggable = false; });
+    }
+
+    row.addEventListener("dragstart", e => {
+      dragSrc = row;
+      row.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", row.dataset.idx);
+    });
+
+    row.addEventListener("dragend", () => {
+      row.classList.remove("dragging");
+      container.querySelectorAll(".admin-site-row").forEach(r => {
+        r.classList.remove("drag-over-top", "drag-over-bottom");
+      });
+      dragSrc = null;
+    });
+
+    row.addEventListener("dragover", e => {
+      e.preventDefault();
+      if (!dragSrc || dragSrc === row) return;
+      e.dataTransfer.dropEffect = "move";
+      const rect   = row.getBoundingClientRect();
+      const midY   = rect.top + rect.height / 2;
+      const isTop  = e.clientY < midY;
+      container.querySelectorAll(".admin-site-row").forEach(r => {
+        r.classList.remove("drag-over-top", "drag-over-bottom");
+      });
+      row.classList.add(isTop ? "drag-over-top" : "drag-over-bottom");
+    });
+
+    row.addEventListener("dragleave", () => {
+      row.classList.remove("drag-over-top", "drag-over-bottom");
+    });
+
+    row.addEventListener("drop", e => {
+      e.preventDefault();
+      if (!dragSrc || dragSrc === row) return;
+
+      const fromIdx = parseInt(dragSrc.dataset.idx);
+      const toIdx   = parseInt(row.dataset.idx);
+      const rect    = row.getBoundingClientRect();
+      const insertBefore = e.clientY < rect.top + rect.height / 2;
+
+      // 調整 localSites 陣列順序
+      const moved   = localSites.splice(fromIdx, 1)[0];
+      let   newIdx  = toIdx > fromIdx ? toIdx - 1 : toIdx;
+      if (!insertBefore && newIdx < localSites.length) newIdx++;
+      localSites.splice(newIdx, 0, moved);
+
+      saveToSheet(() => {
+        refreshAdminSiteList();
+        showToast("順序已儲存", "success");
+      });
+    });
+  });
 }
 
 // ── Save to Sheet ──
