@@ -661,8 +661,16 @@ let currentFilter = "all";
 let editingIndex  = null;
 let localSites    = [];
 
-// ── 人員資料（本地管理）──
-let members = JSON.parse(localStorage.getItem("oitc_members") || "null") || [
+// ── 人員資料（[v9.1] 改由 GAS 後端 Google Sheet 讀寫，不再使用 localStorage）──
+// 說明：舊版僅存於瀏覽器 localStorage，換瀏覽器/清快取/無痕視窗都會遺失，
+// 且勾選的通知對象會因此對應不到人員而消失。現改為每次 load() 時
+// 從後端取得最新人員清單，新增/編輯/刪除也會立即寫回後端。
+let members       = [];
+let membersLoaded = false; // 是否已成功從後端取得過人員資料（避免重複播種預設值）
+
+// 僅在後端 Members 表「完全是空的」（例如首次部署）時，用這份預設清單
+// 種一次資料到後端，之後就完全以後端資料為準。
+const DEFAULT_MEMBERS = [
   { id: "m1", name: "Annie",   email: "annie@oitc.com.tw",   dept: "工程部" },
   { id: "m2", name: "Charlie", email: "charlie@oitc.com.tw", dept: "工程部" },
   { id: "m3", name: "Willa",   email: "willa@oitc.com.tw",   dept: "業務部" },
@@ -672,7 +680,19 @@ let members = JSON.parse(localStorage.getItem("oitc_members") || "null") || [
   { id: "m7", name: "Isaac",   email: "isaac@oitc.com.tw",   dept: "技術部" },
   { id: "m8", name: "Lindsay", email: "lindsay@oitc.com.tw", dept: "技術部" }
 ];
-function saveMembers() { localStorage.setItem("oitc_members", JSON.stringify(members)); }
+
+// 將目前的 members 陣列整批寫回後端（新增/編輯/刪除人員都會呼叫這個）
+function saveMembers(callback) {
+  const body = JSON.stringify({
+    token: TOKEN, client_ip: userIp, action: "updateMembers",
+    members: members.map(m => ({ id: m.id, name: m.name||"", email: m.email||"", dept: m.dept||"" }))
+  });
+  fetch(GAS_URL, { method:"POST", headers:{"Content-Type":"text/plain"}, body })
+    .then(r => r.json()).then(d => {
+      if (d.ok) { if (callback) callback(); }
+      else { showToast("人員資料儲存失敗：" + (d.error||"unknown"), "error"); }
+    }).catch(() => { showToast("人員資料儲存失敗：網路錯誤","error"); });
+}
 
 // ======= IP Check =======
 async function checkAccess() {
@@ -706,6 +726,15 @@ async function load() {
     const data = await res.json();
     if (!data.ok) { alert(`後端拒絕：${data.error||"unknown"}`); return; }
     allItems = data.items || [];
+    // [v9.1] 人員資料一律以後端為準；僅在後端「從未有過資料」時種一次預設值
+    if (Array.isArray(data.members)) {
+      members = data.members;
+      if (members.length === 0 && !membersLoaded) {
+        members = DEFAULT_MEMBERS.map(m => ({ ...m }));
+        saveMembers();
+      }
+    }
+    membersLoaded = true;
     render();
     const now = new Date();
     $("lastUpdateDisplay").textContent = `✔ 最後更新：${now.toLocaleTimeString("zh-TW",{hour12:false})}`;
@@ -1221,10 +1250,9 @@ function bindMemberRowEvents() {
       const i = parseInt(btn.dataset.idx);
       if (confirm(`確定刪除「${members[i].name}」？`)) {
         members.splice(i, 1);
-        saveMembers();
+        saveMembers(() => showToast("人員已刪除"));
         $("tab-members").innerHTML = renderMembersHtml();
         bindMemberEvents();
-        showToast("人員已刪除");
       }
     });
   });
@@ -1262,10 +1290,9 @@ function saveMember() {
   } else {
     members.push({ id: "m"+Date.now(), name, email, dept });
   }
-  saveMembers();
+  saveMembers(() => showToast(editingMemberIdx !== null ? "人員已更新" : "人員已新增"));
   $("tab-members").innerHTML = renderMembersHtml();
   bindMemberEvents();
-  showToast(editingMemberIdx !== null ? "人員已更新" : "人員已新增");
 }
 
 // ── 拖曳排序 ──
